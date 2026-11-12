@@ -46,7 +46,7 @@ jobs:
         working-directory: ${{ env.FRONTEND_DIR }}
 
       - name: Exécuter les tests et générer les rapports JUnit
-        run: bash scripts/test-all.sh
+        run: bash script/run-tests.sh
 
       - name: Publier les résultats de tests dans GitHub
         if: ${{ !cancelled() }}
