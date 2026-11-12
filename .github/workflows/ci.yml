@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  test:
+    name: Tests Angular et Spring Boot
+    runs-on: ubuntu-latest
+
+    env:
+      FRONTEND_DIR: frontend
+      BACKEND_DIR: backend
+
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Installer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Installer Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Installer les dépendances Angular
+        run: npm ci
+        working-directory: ${{ env.FRONTEND_DIR }}
+
+      - name: Exécuter les tests et générer les rapports JUnit
+        run: bash scripts/test-all.sh
+
+      - name: Publier les résultats de tests dans GitHub
+        if: ${{ !cancelled() }}
+        uses: dorny/test-reporter@v2
+        with:
+          name: Résultats des tests
+          path: test-results/junit/**/*.xml
+          reporter: java-junit
+          fail-on-error: true
+
+      - name: Conserver les rapports JUnit comme artefacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapports-junit
+          path: test-results/junit/**/*.xml
+          if-no-files-found: warn
