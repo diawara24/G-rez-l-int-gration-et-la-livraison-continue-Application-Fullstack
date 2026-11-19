@@ -68,6 +68,8 @@ jobs:
     needs: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.release_version.outputs.version }}
     permissions:
       contents: write
 
@@ -90,6 +92,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx semantic-release
+
+      - name: Transmettre la version publiée
+        id: release_version
+        shell: bash
+        run: |
+          version="$(git tag --points-at HEAD | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1 || true)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
   build:
     name: Construire et publier l'image ${{ matrix.app }}
@@ -135,10 +144,8 @@ jobs:
 
       - name: Lire le tag de version créé par semantic-release
         id: version
-        shell: bash
         run: |
-          version="$(git tag --points-at "$GITHUB_SHA" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)"
-          echo "value=$version" >> "$GITHUB_OUTPUT"
+          echo "value=${{ needs.release.outputs.version }}" >> "$GITHUB_OUTPUT"
 
       - name: Préparer les tags et labels
         id: meta
